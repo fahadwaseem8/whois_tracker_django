@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — WHOIS Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060912;
+      --bg2: #0d1424;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --sub: #94a3b8;
+      --accent: #00d4ff;
+      --purple: #7c3aed;
+      --gradient: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Ambient blobs */
+    .blob { position: fixed; border-radius: 50%; filter: blur(140px); opacity: 0.12; pointer-events: none; }
+    .blob-1 { width: 600px; height: 600px; background: #00d4ff; top: -200px; right: -100px; }
+    .blob-2 { width: 500px; height: 500px; background: #7c3aed; bottom: -200px; left: -100px; }
+
+    /* ── Navbar ── */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: rgba(6,9,18,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-icon {
+      width: 34px; height: 34px;
+      background: var(--gradient);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .nav-title { font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; }
+    .nav-sub   { font-size: 0.7rem; color: var(--muted); }
+
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-user  { font-size: 0.83rem; color: var(--sub); }
+    .nav-user span { color: var(--text); font-weight: 500; }
+    .btn-logout {
+      padding: 0.4rem 0.9rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Main layout ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; position: relative; z-index: 1; }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 2rem;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .page-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.03em; }
+    .page-title span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* ── Stats bar ── */
+    .stats { display: flex; gap: 1rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+    .stat-card {
+      flex: 1; min-width: 140px;
+      padding: 1.2rem 1.4rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(0,212,255,0.25); }
+    .stat-value { font-size: 2rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+    .stat-accent { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* ── Action buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0.65rem 1.4rem;
+      background: var(--gradient);
+      border: none; border-radius: 10px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active { transform: none; }
+
+    /* ── Domain grid ── */
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .domain-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.4rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.4s ease both;
+    }
+    .domain-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gradient);
+      opacity: 0;
+      transition: opacity 0.25s;
+      border-radius: 16px;
+    }
+    .domain-card:hover { border-color: rgba(0,212,255,0.35); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+    .domain-card:hover::before { opacity: 0.04; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+    .domain-name {
+      font-size: 1rem; font-weight: 600; letter-spacing: -0.01em;
+      word-break: break-all;
+    }
+    .badge {
+      flex-shrink: 0;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-active   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+    .badge-inactive { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.2); }
+
+    .card-meta { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .meta-item { font-size: 0.78rem; color: var(--muted); }
+    .meta-item strong { color: var(--sub); font-weight: 500; }
+
+    .card-actions {
+      display: flex; gap: 0.6rem; margin-top: 1.2rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .btn-sm {
+      flex: 1;
+      padding: 0.45rem 0.75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--sub);
+    }
+    .btn-sm:hover { background: var(--surface-hover); color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .btn-sm.btn-check:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.btn-delete:hover { border-color: var(--red); color: var(--red); }
+    .btn-sm.btn-view { background: var(--gradient); color: #fff; border: none; }
+    .btn-sm.btn-view:hover { opacity: 0.85; }
+
+    /* ── Empty state ── */
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+    .empty h3 { font-size: 1.1rem; font-weight: 600; color: var(--sub); margin-bottom: 0.5rem; }
+    .empty p  { font-size: 0.85rem; }
+
+    /* ── Loading ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #0d1424;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      width: 100%; max-width: 440px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+      transform: scale(0.95) translateY(20px);
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .overlay.open .modal { transform: scale(1) translateY(0); }
+
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .modal-title  { font-size: 1.1rem; font-weight: 700; }
+    .modal-close  { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; line-height: 1; transition: color 0.2s; }
+    .modal-close:hover { color: var(--text); }
+
+    .form-group { margin-bottom: 1.2rem; }
+    .form-label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--sub); margin-bottom: 0.4rem; }
+    .form-input {
+      width: 100%; padding: 0.75rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.12); }
+    .form-input::placeholder { color: var(--muted); }
+
+    /* ── Toast ── */
+    .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200; display: flex; flex-direction: column; gap: 0.5rem; }
+    .toast {
+      padding: 0.75rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+      max-width: 320px;
+    }
+    .toast-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
+    .toast-error   { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
+    .toast-info    { background: rgba(0,212,255,0.1);   border: 1px solid rgba(0,212,255,0.25); color: var(--accent); }
+    @keyframes slideIn  { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut  { from { opacity: 1; } to { opacity: 0; } }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-sm .spinner { border-top-color: currentColor; border-color: rgba(255,255,255,0.2); border-top-color: currentColor; }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-icon">🔍</div>
+      <div>
+        <div class="nav-title">WHOIS Tracker</div>
+        <div class="nav-sub">Domain intelligence</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-user">Logged in as <span>{{ request.user.username }}</span></div>
+      <a href="{% url 'logout' %}" class="btn-logout">Sign out</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">Your <span>Domains</span></div>
+      </div>
+      <button class="btn-primary" id="btn-add-domain" onclick="openModal()">
+        <span>+</span> Track New Domain
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats-bar">
+      <div class="stat-card"><div class="stat-value stat-accent skeleton" style="width:40px;height:2rem">&nbsp;</div><div class="stat-label">Total Domains</div></div>
+      <div class="stat-card"><div class="stat-value stat-accent skeleton" style="width:40px;height:2rem">&nbsp;</div><div class="stat-label">Active</div></div>
+      <div class="stat-card"><div class="stat-value stat-accent skeleton" style="width:40px;height:2rem">&nbsp;</div><div class="stat-label">Total Snapshots</div></div>
+    </div>
+
+    <!-- Domain grid -->
+    <div class="domain-grid" id="domain-grid">
+      <!-- Skeleton loaders -->
+      <div class="domain-card" style="pointer-events:none">
+        <div class="skeleton" style="height:1rem;width:60%;margin-bottom:1rem;"></div>
+        <div class="skeleton" style="height:0.7rem;width:40%;margin-bottom:0.5rem;"></div>
+        <div class="skeleton" style="height:0.7rem;width:30%;"></div>
+      </div>
+      <div class="domain-card" style="pointer-events:none">
+        <div class="skeleton" style="height:1rem;width:70%;margin-bottom:1rem;"></div>
+        <div class="skeleton" style="height:0.7rem;width:50%;margin-bottom:0.5rem;"></div>
+        <div class="skeleton" style="height:0.7rem;width:35%;"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Domain Modal -->
+  <div class="overlay" id="add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Track a new domain</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="input-domain">Domain name</label>
+        <input class="form-input" id="input-domain" type="text" placeholder="e.g. google.com" autocomplete="off" />
+      </div>
+      <button class="btn-primary" id="btn-submit-domain" onclick="submitDomain()" style="width:100%;justify-content:center;">
+        Start Tracking
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toasts"></div>
+
+  <script>
+    const CSRF = '{{ csrf_token }}';
+
+    async function apiFetch(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF, ...(options.headers || {}) },
+        credentials: 'same-origin',
+        ...options,
+      });
+      return res;
+    }
+
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.textContent = msg;
+      document.getElementById('toasts').appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }
+
+    function timeAgo(iso) {
+      const diff = Date.now() - new Date(iso);
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    }
+
+    function renderCard(d, i) {
+      const el = document.createElement('div');
+      el.className = 'domain-card';
+      el.style.animationDelay = `${i * 0.06}s`;
+      el.innerHTML = `
+        <div class="card-top">
+          <div class="domain-name">${d.domain_name}</div>
+          <span class="badge ${d.is_active ? 'badge-active' : 'badge-inactive'}">${d.is_active ? 'Active' : 'Inactive'}</span>
+        </div>
+        <div class="card-meta">
+          <div class="meta-item">📸 <strong>${d.snapshot_count}</strong> snapshots</div>
+          <div class="meta-item">🕐 Added <strong>${timeAgo(d.created_at)}</strong></div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-sm btn-check" id="check-btn-${d.id}" onclick="checkDomain(${d.id}, '${d.domain_name}', this)">⚡ Check Now</button>
+          <button class="btn-sm btn-view" onclick="window.location='/domains/${d.id}/'">📋 History</button>
+          <button class="btn-sm btn-delete" onclick="deleteDomain(${d.id}, '${d.domain_name}', this)">🗑</button>
+        </div>
+      `;
+      return el;
+    }
+
+    async function loadDomains() {
+      const res = await apiFetch('/api/v1/domains/');
+      if (!res.ok) { toast('Failed to load domains', 'error'); return; }
+      const domains = await res.json();
+
+      // Render stats
+      const total = domains.length;
+      const active = domains.filter(d => d.is_active).length;
+      const snapshots = domains.reduce((a, d) => a + d.snapshot_count, 0);
+      document.getElementById('stats-bar').innerHTML = `
+        <div class="stat-card"><div class="stat-value stat-accent">${total}</div><div class="stat-label">Total Domains</div></div>
+        <div class="stat-card"><div class="stat-value stat-accent">${active}</div><div class="stat-label">Active</div></div>
+        <div class="stat-card"><div class="stat-value stat-accent">${snapshots}</div><div class="stat-label">Total Snapshots</div></div>
+      `;
+
+      const grid = document.getElementById('domain-grid');
+      grid.innerHTML = '';
+      if (!domains.length) {
+        grid.innerHTML = `<div class="empty"><div class="empty-icon">🌐</div><h3>No domains tracked yet</h3><p>Click "Track New Domain" to get started.</p></div>`;
+        return;
+      }
+      domains.forEach((d, i) => grid.appendChild(renderCard(d, i)));
+    }
+
+    async function checkDomain(id, name, btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+      const res = await apiFetch(`/api/v1/domains/${id}/check`, { method: 'POST' });
+      if (!res.ok) { toast('Check failed', 'error'); btn.disabled = false; btn.innerHTML = '⚡ Check Now'; return; }
+      const data = await res.json();
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Check Now';
+      toast(data.changed ? `🔔 ${name}: change detected!` : `✅ ${name}: no changes`, data.changed ? 'info' : 'success');
+      if (data.changed) loadDomains();
+    }
+
+    async function deleteDomain(id, name, btn) {
+      if (!confirm(`Remove "${name}" from tracking?`)) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+      const res = await apiFetch(`/api/v1/domains/${id}/`, { method: 'DELETE' });
+      if (!res.ok) { toast('Delete failed', 'error'); btn.disabled = false; btn.innerHTML = '🗑'; return; }
+      toast(`${name} removed`);
+      loadDomains();
+    }
+
+    function openModal() {
+      document.getElementById('add-modal').classList.add('open');
+      setTimeout(() => document.getElementById('input-domain').focus(), 100);
+    }
+    function closeModal() {
+      document.getElementById('add-modal').classList.remove('open');
+      document.getElementById('input-domain').value = '';
+    }
+
+    document.getElementById('add-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    document.getElementById('input-domain').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitDomain();
+    });
+
+    async function submitDomain() {
+      const input = document.getElementById('input-domain');
+      const name = input.value.trim();
+      if (!name) { toast('Enter a domain name', 'error'); return; }
+
+      const btn = document.getElementById('btn-submit-domain');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Tracking...';
+
+      const res = await apiFetch('/api/v1/domains/', {
+        method: 'POST',
+        body: JSON.stringify({ domain_name: name }),
+      });
+      btn.disabled = false;
+      btn.innerHTML = 'Start Tracking';
+
+      if (!res.ok) { toast('Failed to add domain', 'error'); return; }
+      toast(`${name} is now being tracked! 🎉`);
+      closeModal();
+      loadDomains();
+    }
+
+    loadDomains();
+  </script>
+</body>
+</html>

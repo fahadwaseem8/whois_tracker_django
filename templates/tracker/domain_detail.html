@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Domain History — WHOIS Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060912;
+      --bg2: #0d1424;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --sub: #94a3b8;
+      --accent: #00d4ff;
+      --purple: #7c3aed;
+      --gradient: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+      --green: #10b981;
+      --red: #ef4444;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .blob { position: fixed; border-radius: 50%; filter: blur(140px); opacity: 0.1; pointer-events: none; }
+    .blob-1 { width: 500px; height: 500px; background: #7c3aed; top: -150px; left: -100px; }
+    .blob-2 { width: 400px; height: 400px; background: #00d4ff; bottom: -150px; right: -100px; }
+
+    /* Navbar */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 64px;
+      background: rgba(6,9,18,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-icon { width: 34px; height: 34px; background: var(--gradient); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .nav-title { font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; }
+
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0.4rem 0.9rem;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--sub);
+      font-family: 'Inter', sans-serif; font-size: 0.82rem;
+      cursor: pointer; transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+
+    main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem; position: relative; z-index: 1; }
+
+    /* Domain header */
+    .domain-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      margin-bottom: 2rem;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .domain-info { display: flex; align-items: center; gap: 1rem; }
+    .domain-avatar {
+      width: 52px; height: 52px;
+      background: var(--gradient);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .domain-name-title { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em; }
+    .domain-sub { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+
+    .btn-check-now {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0.65rem 1.3rem;
+      background: var(--gradient); border: none; border-radius: 10px;
+      color: #fff; font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-check-now:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-check-now:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Timeline */
+    .timeline-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .section-title { font-size: 1rem; font-weight: 600; }
+    .snapshot-count { font-size: 0.8rem; color: var(--muted); }
+
+    .timeline { position: relative; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 20px; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(0,212,255,0.4), rgba(124,58,237,0.1));
+    }
+
+    .snapshot-item {
+      display: flex; gap: 1.2rem;
+      margin-bottom: 1rem;
+      animation: fadeLeft 0.4s ease both;
+    }
+    @keyframes fadeLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+
+    .snap-dot {
+      flex-shrink: 0;
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      position: relative; z-index: 1;
+      transition: border-color 0.2s;
+    }
+    .snap-dot.first { border-color: rgba(0,212,255,0.5); background: rgba(0,212,255,0.08); }
+
+    .snap-body {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      transition: border-color 0.2s;
+    }
+    .snap-body:hover { border-color: rgba(255,255,255,0.14); }
+
+    .snap-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem; }
+    .snap-time { font-size: 0.82rem; color: var(--sub); font-weight: 500; }
+    .snap-badge {
+      padding: 0.18rem 0.55rem;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .snap-badge.initial { background: rgba(0,212,255,0.12); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+    .snap-badge.change  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .snap-hash {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+    .snap-hash span { color: var(--accent); opacity: 0.9; }
+
+    /* expand raw json */
+    .snap-toggle {
+      margin-top: 0.7rem;
+      font-size: 0.76rem;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+      transition: color 0.2s;
+    }
+    .snap-toggle:hover { color: var(--accent); }
+
+    .snap-json {
+      display: none;
+      margin-top: 0.8rem;
+      padding: 0.8rem;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .snap-json.open { display: block; }
+
+    /* Empty / loading */
+    .empty { text-align: center; padding: 3rem; color: var(--muted); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.35; }
+    .empty h3 { color: var(--sub); margin-bottom: 0.4rem; }
+
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    /* Toast */
+    .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200; display: flex; flex-direction: column; gap: 0.5rem; }
+    .toast { padding: 0.75rem 1.2rem; border-radius: 10px; font-size: 0.85rem; font-weight: 500; animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards; }
+    .toast-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
+    .toast-error   { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
+    .toast-info    { background: rgba(0,212,255,0.1);   border: 1px solid rgba(0,212,255,0.25); color: var(--accent); }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-icon">🔍</div>
+      <div><div class="nav-title">WHOIS Tracker</div></div>
+    </div>
+    <a href="/dashboard/" class="btn-back">← Back to Dashboard</a>
+  </nav>
+
+  <main>
+    <!-- Domain header -->
+    <div class="domain-header" id="domain-header">
+      <div class="domain-info">
+        <div class="domain-avatar skeleton" style="background:none">&nbsp;</div>
+        <div>
+          <div class="domain-name-title skeleton" style="width:200px;height:1.4rem;">&nbsp;</div>
+          <div class="domain-sub skeleton" style="width:120px;height:0.8rem;margin-top:6px;">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snapshot timeline -->
+    <div class="timeline-header">
+      <div class="section-title">Snapshot History</div>
+      <div class="snapshot-count" id="snap-count">Loading…</div>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="snapshot-item">
+        <div class="snap-dot skeleton" style="background:none">&nbsp;</div>
+        <div class="snap-body skeleton" style="height:80px">&nbsp;</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toasts"></div>
+
+  <script>
+    const DOMAIN_ID = {{ domain_id }};
+    const CSRF = '{{ csrf_token }}';
+    let domainName = '';
+
+    async function apiFetch(url, options = {}) {
+      return fetch(url, {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF, ...(options.headers || {}) },
+        credentials: 'same-origin', ...options,
+      });
+    }
+
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.textContent = msg;
+      document.getElementById('toasts').appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }
+
+    function formatDate(iso) {
+      return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function timeAgo(iso) {
+      const diff = Date.now() - new Date(iso);
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    }
+
+    function toggleJson(id) {
+      const el = document.getElementById(`json-${id}`);
+      const toggle = document.getElementById(`toggle-${id}`);
+      if (el.classList.contains('open')) {
+        el.classList.remove('open');
+        toggle.textContent = '▶ Show raw JSON';
+      } else {
+        if (!el.textContent || el.textContent === 'Loading…') {
+          el.textContent = el.dataset.json || 'No data available';
+        }
+        el.classList.add('open');
+        toggle.textContent = '▼ Hide raw JSON';
+      }
+    }
+
+    async function loadDomain() {
+      const res = await apiFetch('/api/v1/domains/');
+      if (!res.ok) { toast('Failed to load domain info', 'error'); return; }
+      const domains = await res.json();
+      const d = domains.find(x => x.id === DOMAIN_ID);
+      if (!d) { document.getElementById('domain-header').innerHTML = '<p style="color:var(--muted)">Domain not found.</p>'; return; }
+      domainName = d.domain_name;
+      document.title = `${d.domain_name} — WHOIS Tracker`;
+      document.getElementById('domain-header').innerHTML = `
+        <div class="domain-info">
+          <div class="domain-avatar">🌐</div>
+          <div>
+            <div class="domain-name-title">${d.domain_name}</div>
+            <div class="domain-sub">${d.is_active ? '✅ Active tracking' : '⏸ Inactive'} · ${d.snapshot_count} snapshots</div>
+          </div>
+        </div>
+        <button class="btn-check-now" id="check-btn" onclick="checkNow()">⚡ Check Now</button>
+      `;
+    }
+
+    async function loadSnapshots() {
+      const res = await apiFetch(`/api/v1/domains/${DOMAIN_ID}/snapshots/`);
+      if (!res.ok) { toast('Failed to load snapshots', 'error'); return; }
+      const snaps = await res.json();
+      document.getElementById('snap-count').textContent = `${snaps.length} snapshot${snaps.length !== 1 ? 's' : ''}`;
+
+      const timeline = document.getElementById('timeline');
+      if (!snaps.length) {
+        timeline.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><h3>No snapshots yet</h3><p>Click "Check Now" to run the first lookup.</p></div>`;
+        return;
+      }
+
+      timeline.innerHTML = '';
+      snaps.forEach((s, i) => {
+        const isFirst = i === snaps.length - 1;
+        const item = document.createElement('div');
+        item.className = 'snapshot-item';
+        item.style.animationDelay = `${i * 0.06}s`;
+        item.innerHTML = `
+          <div class="snap-dot ${isFirst ? 'first' : ''}">${isFirst ? '🌱' : '📸'}</div>
+          <div class="snap-body">
+            <div class="snap-top">
+              <div class="snap-time">🕐 ${formatDate(s.checked_at)} · ${timeAgo(s.checked_at)}</div>
+              <span class="snap-badge ${isFirst ? 'initial' : 'change'}">${isFirst ? 'Initial capture' : 'Change detected'}</span>
+            </div>
+            <div class="snap-hash">SHA-256: <span>${s.payload_hash}</span></div>
+            <span class="snap-toggle" id="toggle-${s.id}" onclick="toggleJson(${s.id})">▶ Show raw JSON</span>
+            <pre class="snap-json" id="json-${s.id}">Loading…</pre>
+          </div>
+        `;
+        timeline.appendChild(item);
+      });
+
+      // Lazy-render raw JSON on expand (data already available from API)
+      snaps.forEach((snap) => {
+        const pre = document.getElementById(`json-${snap.id}`);
+        if (pre) {
+          try {
+            pre.dataset.json = JSON.stringify(JSON.parse(snap.raw_json), null, 2);
+          } catch {
+            pre.dataset.json = snap.raw_json || 'No data';
+          }
+        }
+      });
+    }
+
+    async function checkNow() {
+      const btn = document.getElementById('check-btn');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Checking…';
+      const res = await apiFetch(`/api/v1/domains/${DOMAIN_ID}/check`, { method: 'POST' });
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Check Now';
+      if (!res.ok) { toast('Check failed', 'error'); return; }
+      const data = await res.json();
+      toast(data.changed ? `🔔 Change detected for ${domainName}!` : `✅ No changes for ${domainName}`, data.changed ? 'info' : 'success');
+      if (data.changed) loadSnapshots();
+    }
+
+    loadDomain();
+    loadSnapshots();
+  </script>
+</body>
+</html>

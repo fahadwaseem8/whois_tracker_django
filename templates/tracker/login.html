@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHOIS Tracker — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060912;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.09);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #00d4ff;
+      --purple: #7c3aed;
+      --gradient: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+      --error: #ef4444;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Ambient blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.18;
+      pointer-events: none;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 500px; height: 500px; background: #00d4ff; top: -150px; left: -150px; }
+    .blob-2 { width: 400px; height: 400px; background: #7c3aed; bottom: -100px; right: -100px; animation-delay: -4s; }
+
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(40px, 30px) scale(1.05); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      padding: 2.5rem;
+      background: rgba(13, 20, 36, 0.85);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: var(--gradient);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em; }
+    .logo-sub  { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
+    .subtitle { font-size: 0.875rem; color: var(--muted); margin-bottom: 2rem; }
+
+    label { display: block; font-size: 0.8rem; font-weight: 500; color: #94a3b8; margin-bottom: 0.4rem; letter-spacing: 0.02em; }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 1.2rem;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.12);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.8rem;
+      background: var(--gradient);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .errors {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.83rem;
+      color: #fca5a5;
+      margin-bottom: 1.2rem;
+    }
+
+    .admin-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .admin-link a { color: var(--accent); text-decoration: none; }
+    .admin-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🔍</div>
+      <div>
+        <div class="logo-text">WHOIS Tracker</div>
+        <div class="logo-sub">Domain intelligence platform</div>
+      </div>
+    </div>
+
+    <h1>Welcome back</h1>
+    <p class="subtitle">Sign in to monitor your domains</p>
+
+    {% if form.errors %}
+    <div class="errors">
+      Invalid username or password. Please try again.
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">Username</label>
+      <input type="text" id="id_username" name="username" placeholder="fahad" autocomplete="username" autofocus />
+
+      <label for="id_password">Password</label>
+      <input type="password" id="id_password" name="password" placeholder="••••••••" autocomplete="current-password" />
+
+      <input type="hidden" name="next" value="{{ next }}" />
+      <button class="btn" type="submit">Sign in →</button>
+    </form>
+
+    <div class="admin-link">
+      Need admin access? <a href="/admin/">Django Admin</a>
+    </div>
+  </div>
+</body>
+</html>
