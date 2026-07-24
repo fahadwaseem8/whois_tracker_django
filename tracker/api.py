@@ -3,7 +3,6 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from ninja import NinjaAPI, Schema
 from ninja.security import django_auth
-from django_q.tasks import async_task
 from .models import TrackedDomain, WhoisSnapshot
 from .services import process_domain_check
 
@@ -54,8 +53,8 @@ def create_tracked_domain(request, payload: DomainIn):
         domain_name=domain_clean
     )
     if created:
-        # Fire an immediate WHOIS check in the background worker
-        async_task(process_domain_check, domain.id)
+        # Run WHOIS check immediately (synchronous) — works on Vercel serverless
+        process_domain_check(domain.id)
     domain.snapshot_count = domain.snapshots.count()
     return domain
 
